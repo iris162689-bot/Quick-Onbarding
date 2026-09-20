@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KnowQuick · 领域知识速通助手</title>
+<meta name="description" content="输入任意领域关键词，AI 自动生成知识文档、思维导图和互动测验，帮你快速入门新领域。" />
+<style>
+:root{
+  --bg:#0f1020;
+  --bg-2:#161834;
+  --surface:#1e2044;
+  --surface-2:#272a56;
+  --border:#33366a;
+  --text:#f0f1ff;
+  --text-2:#a9adcf;
+  --text-3:#6e73a5;
+  --primary:#7c8cff;
+  --primary-2:#a67bff;
+  --accent:#2dd4bf;
+  --warn:#ffb454;
+  --danger:#ff6b8a;
+  --radius:16px;
+  --radius-lg:24px;
+  --shadow:0 8px 30px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;top:-200px;left:-200px;width:600px;height:600px;
+  background:radial-gradient(circle,rgba(124,140,255,.15) 0%,transparent 70%);
+  z-index:0;pointer-events:none;
+}
+body::after{
+  content:"";position:fixed;bottom:-200px;right:-200px;width:600px;height:600px;
+  background:radial-gradient(circle,rgba(166,123,255,.12) 0%,transparent 70%);
+  z-index:0;pointer-events:none;
+}
+
+.container{max-width:1100px;margin:0 auto;padding:40px 24px 80px;position:relative;z-index:1}
+
+/* Header */
+.header{text-align:center;margin-bottom:40px;padding:20px 0}
+.logo{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:22px;font-weight:700;margin-bottom:16px;
+}
+.logo-icon{
+  width:42px;height:42px;border-radius:12px;
+  background:linear-gradient(135deg,var(--primary),var(--primary-2));
+  display:grid;place-items:center;color:#fff;font-size:18px;font-weight:800;
+  box-shadow:0 4px 20px rgba(124,140,255,.4);
+}
+.logo-text{
+  background:linear-gradient(135deg,var(--primary),var(--primary-2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.tagline{font-size:16px;color:var(--text-2);margin-bottom:8px}
+.sub-tagline{font-size:13px;color:var(--text-3)}
+
+/* Search Area */
+.search-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:28px;
+  margin-bottom:28px;
+  box-shadow:var(--shadow);
+}
+.search-label{font-size:14px;color:var(--text-2);margin-bottom:12px;font-weight:500}
+.search-row{display:flex;gap:12px}
+.search-input{
+  flex:1;padding:16px 20px;
+  background:var(--bg-2);
+  border:2px solid var(--border);
+  border-radius:12px;
+  font-size:15px;color:var(--text);
+  font-family:inherit;
+  transition:all .2s;
+}
+.search-input:focus{outline:none;border-color:var(--primary)}
+.search-btn{
+  padding:16px 28px;
+  background:linear-gradient(135deg,var(--primary),var(--primary-2));
+  color:#fff;border:none;border-radius:12px;
+  font-size:15px;font-weight:600;cursor:pointer;
+  transition:transform .2s, box-shadow .2s;
+  font-family:inherit;
+  white-space:nowrap;
+}
+.search-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,140,255,.4)}
+.search-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
+.suggestions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.suggestion-tag{
+  padding:6px 14px;background:var(--bg-2);
+  border:1px solid var(--border);border-radius:20px;
+  font-size:13px;color:var(--text-2);cursor:pointer;
+  transition:all .2s;
+}
+.suggestion-tag:hover{background:var(--surface-2);color:var(--primary);border-color:var(--primary)}
+
+/* Tabs */
+.tabs{
+  display:flex;gap:4px;background:var(--surface);
+  padding:6px;border-radius:14px;
+  border:1px solid var(--border);
+  margin-bottom:24px;
+  box-shadow:var(--shadow);
+}
+.tab{
+  flex:1;padding:12px 16px;border-radius:10px;
+  cursor:pointer;font-size:14px;color:var(--text-2);
+  font-weight:500;transition:all .2s;
+  border:none;background:transparent;
+  font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--surface-2);color:var(--primary)}
+
+/* Panels */
+.panel{display:none;animation:fadeUp .4s ease}
+.panel.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* Empty state */
+.empty-state{
+  text-align:center;padding:80px 20px;color:var(--text-3);
+  background:var(--surface);border:1px dashed var(--border);
+  border-radius:var(--radius-lg);
+}
+.empty-state-icon{font-size:56px;margin-bottom:16px;opacity:.6}
+.empty-state h3{font-size:18px;color:var(--text-2);margin-bottom:8px}
+.empty-state p{font-size:14px}
+
+/* Loading */
+.loading{
+  text-align:center;padding:60px 20px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+}
+.spinner{
+  width:48px;height:48px;border:4px solid var(--border);
+  border-top-color:var(--primary);border-radius:50%;
+  animation:spin 1s linear infinite;margin:0 auto 20px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{color:var(--text-2);font-size:14px}
+.loading .hint{color:var(--text-3);font-size:12px;margin-top:8px}
+
+/* Error */
+.error-box{
+  padding:20px;background:rgba(255,107,138,.1);
+  border:1px solid var(--danger);border-radius:12px;
+  color:var(--danger);margin-bottom:20px;font-size:14px;
+}
+
+/* ===== Document ===== */
+.doc-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:36px 40px;
+  box-shadow:var(--shadow);
+}
+.doc-header{margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.doc-title{
+  font-size:28px;font-weight:700;margin-bottom:6px;
+  background:linear-gradient(135deg,var(--text),var(--primary));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.doc-en{font-size:14px;color:var(--text-3);margin-bottom:14px;font-style:italic}
+.doc-def{
+  font-size:15px;color:var(--text-2);line-height:1.7;
+  padding:16px 20px;background:var(--bg-2);
+  border-left:3px solid var(--primary);border-radius:0 10px 10px 0;
+}
+.doc-section{margin-top:28px}
+.doc-section h3{
+  font-size:17px;font-weight:600;margin-bottom:14px;
+  display:flex;align-items:center;gap:10px;color:var(--text);
+}
+.doc-section h3 .icon{font-size:18px}
+.idea-list{list-style:none;padding:0}
+.idea-list li{
+  padding:12px 16px;background:var(--bg-2);
+  border-radius:10px;margin-bottom:8px;
+  color:var(--text-2);font-size:14.5px;
+  display:flex;gap:10px;
+}
+.idea-list li::before{content:"💡";flex-shrink:0}
+.process-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;
+}
+.process-item{
+  background:var(--bg-2);border-radius:12px;padding:16px;
+  border-top:3px solid var(--primary);position:relative;
+}
+.process-item .step-num{
+  position:absolute;top:-10px;right:12px;
+  background:var(--primary);color:#fff;
+  width:24px;height:24px;border-radius:50%;
+  display:grid;place-items:center;font-size:12px;font-weight:700;
+}
+.process-item h4{font-size:14px;color:var(--text);margin-bottom:6px}
+.process-item p{font-size:13px;color:var(--text-3)}
+.tools-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;
+}
+.tool-card{
+  background:var(--bg-2);border-radius:12px;padding:16px;
+  border:1px solid var(--border);transition:border-color .2s;
+}
+.tool-card:hover{border-color:var(--accent)}
+.tool-card strong{color:var(--accent);font-size:14px;display:block;margin-bottom:6px}
+.tool-card span{font-size:13px;color:var(--text-3)}
+
+/* ===== Mindmap ===== */
+.mindmap-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:24px;
+  box-shadow:var(--shadow);
+}
+.mindmap-title{font-size:18px;font-weight:600;margin-bottom:6px}
+.mindmap-subtitle{font-size:13px;color:var(--text-3);margin-bottom:20px}
+.mindmap-container{
+  background:var(--bg-2);border-radius:14px;
+  padding:20px;min-height:400px;
+  overflow:hidden;
+}
+.mindmap-container svg{width:100%;height:450px}
+
+/* ===== Quiz ===== */
+.quiz-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:28px;
+  box-shadow:var(--shadow);
+}
+.quiz-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px;flex-wrap:wrap}
+.quiz-progress{flex:1;min-width:200px}
+.quiz-progress-bar{
+  width:100%;height:8px;background:var(--bg-2);
+  border-radius:4px;overflow:hidden;
+}
+.quiz-progress-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--primary),var(--primary-2));
+  border-radius:4px;transition:width .3s;
+}
+.quiz-progress-text{font-size:13px;color:var(--text-3);margin-top:4px;text-align:right}
+.quiz-q-num{font-size:13px;color:var(--primary);font-weight:600;margin-bottom:8px}
+.quiz-q-text{font-size:18px;font-weight:600;margin-bottom:20px;line-height:1.5}
+.quiz-options{display:flex;flex-direction:column;gap:10px}
+.quiz-option{
+  padding:14px 18px;border:2px solid var(--border);border-radius:12px;
+  cursor:pointer;transition:all .2s;font-size:14.5px;color:var(--text);
+  display:flex;align-items:center;gap:12px;background:var(--bg-2);
+}
+.quiz-option:hover{border-color:var(--primary)}
+.quiz-option.selected{border-color:var(--primary);background:rgba(124,140,255,.15)}
+.quiz-option.correct{border-color:var(--accent);background:rgba(45,212,191,.15);color:var(--accent)}
+.quiz-option.wrong{border-color:var(--danger);background:rgba(255,107,138,.15);color:var(--danger)}
+.quiz-option-letter{
+  width:28px;height:28px;border-radius:50%;background:var(--surface-2);
+  display:grid;place-items:center;font-weight:600;font-size:13px;flex-shrink:0;
+}
+.quiz-option.selected .quiz-option-letter{background:var(--primary);color:#fff}
+.quiz-option.correct .quiz-option-letter{background:var(--accent);color:#fff}
+.quiz-option.wrong .quiz-option-letter{background:var(--danger);color:#fff}
+.quiz-explanation{
+  margin-top:20px;padding:16px 20px;border-radius:12px;
+  background:rgba(45,212,191,.1);color:var(--accent);font-size:14px;
+  border-left:3px solid var(--accent);
+}
+.quiz-explanation.wrong{background:rgba(255,180,84,.1);color:var(--warn);border-left-color:var(--warn)}
+.quiz-nav{display:flex;justify-content:space-between;margin-top:24px;gap:12px}
+.quiz-btn{
+  padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;
+  cursor:pointer;border:none;font-family:inherit;transition:all .2s;
+}
+.quiz-btn.primary{
+  background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;
+}
+.quiz-btn.primary:hover{transform:translateY(-1px)}
+.quiz-btn.secondary{background:var(--bg-2);color:var(--text-2);border:1px solid var(--border)}
+.quiz-btn.secondary:hover{background:var(--surface-2)}
+.quiz-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+.quiz-result{text-align:center;padding:40px 20px}
+.quiz-score-circle{
+  width:140px;height:140px;border-radius:50%;
+  margin:0 auto 20px;position:relative;
+  background:conic-gradient(var(--primary) var(--score,70%), var(--bg-2) 0);
+  display:grid;place-items:center;
+}
+.quiz-score-inner{
+  width:110px;height:110px;border-radius:50%;
+  background:var(--surface);display:grid;place-items:center;
+}
+.quiz-score-num{font-size:32px;font-weight:700;color:var(--primary)}
+.quiz-score-label{font-size:13px;color:var(--text-3)}
+.quiz-result h3{font-size:22px;margin-bottom:8px}
+.quiz-result p{color:var(--text-2);font-size:14px;margin-bottom:20px}
+
+/* Settings */
+.settings-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:20px 24px;
+  margin-bottom:20px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+}
+.settings-card label{font-size:13px;color:var(--text-2);white-space:nowrap}
+.settings-card input{
+  flex:1;min-width:200px;padding:8px 14px;
+  background:var(--bg-2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:13px;
+  font-family:inherit;
+}
+.settings-card input:focus{outline:none;border-color:var(--primary)}
+.settings-card button{
+  padding:8px 16px;background:var(--surface-2);
+  border:1px solid var(--border);color:var(--text-2);
+  border-radius:8px;font-size:13px;cursor:pointer;
+  font-family:inherit;
+}
+.settings-card button:hover{color:var(--primary);border-color:var(--primary)}
+
+/* Footer */
+.footer{
+  text-align:center;color:var(--text-3);font-size:12px;
+  margin-top:40px;padding-top:20px;border-top:1px solid var(--border);
+}
+
+@media(max-width:768px){
+  .container{padding:24px 16px 60px}
+  .search-row{flex-direction:column}
+  .tabs{flex-direction:row;flex-wrap:wrap}
+  .tab{font-size:13px;padding:10px 8px}
+  .doc-card{padding:24px 20px}
+  .doc-title{font-size:22px}
+  .process-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">K</div>
+      <span class="logo-text">KnowQuick</span>
+    </div>
+    <div class="tagline">输入一个领域关键词，AI 帮你快速入门</div>
+    <div class="sub-tagline">📖 知识文档 · 🧠 思维导图 · ✅ 互动测验</div>
+  </header>
+
+  <!-- API Key Setting -->
+  <div class="settings-card" id="settingsCard">
+    <label>🔑 豆包 API Key：</label>
+    <input type="password" id="apiKeyInput" placeholder="请输入你的豆包 API Key（保存在浏览器本地）" />
+    <button onclick="saveApiKey()">保存</button>
+    <button onclick="clearApiKey()">清除</button>
+    <span style="font-size:12px;color:var(--text-3)">
+      没有？<a href="https://console.volcengine.com/ark" target="_blank" style="color:var(--primary)">去火山引擎申请</a>
+    </span>
+  </div>
+
+  <!-- Search -->
+  <div class="search-card">
+    <div class="search-label">🚀 输入你想了解的领域或概念</div>
+    <div class="search-row">
+      <input class="search-input" id="topicInput" type="text"
+        placeholder="例如：B2B获客、跨境电商广告投放、产品经理、数据分析、用户增长..."
+        onkeydown="if(event.key==='Enter')generate()" />
+      <button class="search-btn" id="generateBtn" onclick="generate()">生成知识</button>
+    </div>
+    <div class="suggestions">
+      <span class="suggestion-tag" onclick="quickGen('B2B获客')">B2B获客</span>
+      <span class="suggestion-tag" onclick="quickGen('跨境电商广告投放')">跨境电商广告投放</span>
+      <span class="suggestion-tag" onclick="quickGen('产品经理入门')">产品经理入门</span>
+      <span class="suggestion-tag" onclick="quickGen('用户增长')">用户增长</span>
+      <span class="suggestion-tag" onclick="quickGen('数据分析基础')">数据分析基础</span>
+      <span class="suggestion-tag" onclick="quickGen('SEO搜索引擎优化')">SEO优化</span>
+      <span class="suggestion-tag" onclick="quickGen('品牌营销')">品牌营销</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="resultTabs" style="display:none">
+    <button class="tab active" onclick="switchTab('doc',this)">📖 知识文档</button>
+    <button class="tab" onclick="switchTab('mindmap',this)">🧠 思维导图</button>
+    <button class="tab" onclick="switchTab('quiz',this)">✅ 知识测验</button>
+  </div>
+
+  <!-- Doc Panel -->
+  <div class="panel active" id="panel-doc">
+    <div class="empty-state" id="docEmpty">
+      <div class="empty-state-icon">📚</div>
+      <h3>开始你的知识速通之旅</h3>
+      <p>输入任意关键词，AI 将为你生成结构化的领域知识</p>
+    </div>
+    <div id="docContent" style="display:none"></div>
+  </div>
+
+  <!-- Mindmap Panel -->
+  <div class="panel" id="panel-mindmap">
+    <div class="empty-state" id="mindmapEmpty">
+      <div class="empty-state-icon">🧠</div>
+      <h3>思维导图将在这里展示</h3>
+      <p>生成知识后，查看可视化的知识脉络</p>
+    </div>
+    <div id="mindmapContent" style="display:none" class="mindmap-card">
+      <div class="mindmap-title" id="mindmapTitle">思维导图</div>
+      <div class="mindmap-subtitle" id="mindmapSubtitle"></div>
+      <div class="mindmap-container">
+        <svg id="mindmapSvg" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quiz Panel -->
+  <div class="panel" id="panel-quiz">
+    <div class="empty-state" id="quizEmpty">
+      <div class="empty-state-icon">✅</div>
+      <h3>测测你理解了多少</h3>
+      <p>生成知识后，来做几道题检验一下</p>
+    </div>
+    <div id="quizContent" style="display:none" class="quiz-card"></div>
+  </div>
+
+  <div class="footer">
+    KnowQuick · 领域知识速通助手 · Powered by 豆包大模型
+  </div>
+</div>
+
+<script>
+// ========== State ==========
+let currentData = null;
+let quizState = { current: 0, answers: [], finished: false };
+
+// ========== API Key ==========
+function getApiKey(){
+  return localStorage.getItem('doubao_api_key') || '';
+}
+function saveApiKey(){
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if(!key){alert('请输入 API Key');return;}
+  localStorage.setItem('doubao_api_key', key);
+  alert('API Key 已保存到浏览器本地');
+}
+function clearApiKey(){
+  localStorage.removeItem('doubao_api_key');
+  document.getElementById('apiKeyInput').value = '';
+  alert('已清除');
+}
+// 初始化
+document.getElementById('apiKeyInput').value = getApiKey();
+
+// ========== Generate ==========
+function quickGen(topic){
+  document.getElementById('topicInput').value = topic;
+  generate();
+}
+
+async function generate(){
+  const topic = document.getElementById('topicInput').value.trim();
+  if(!topic){alert('请输入学习主题');return;}
+
+  const apiKey = getApiKey();
+  if(!apiKey){
+    alert('请先在上方填写豆包 API Key\n\n申请步骤：\n1. 访问火山引擎控制台\n2. 开通方舟（Ark）服务\n3. 创建推理接入点获取 API Key');
+    document.getElementById('settingsCard').scrollIntoView({behavior:'smooth'});
+    return;
+  }
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+
+  // 显示 loading
+  showLoading();
+
+  try {
+    // 优先调用 Vercel 后端代理，失败则直接调用（浏览器可能有 CORS 问题）
+    let result;
+    try {
+      result = await callServerlessAPI(topic, apiKey);
+    } catch(e) {
+      // 如果后端不可用，提示用户
+      console.warn('后端代理失败:', e.message);
+      throw new Error('后端服务不可用，请确认已部署 Vercel 函数。\n\n错误信息: ' + e.message);
+    }
+
+    if(result.error){
+      throw new Error(result.error);
+    }
+
+    currentData = result.data;
+    renderAll();
+    document.getElementById('resultTabs').style.display = 'flex';
+
+  } catch(err) {
+    showError(err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '生成知识';
+  }
+}
+
+async function callServerlessAPI(topic, apiKey){
+  // Vercel 会自动配置环境变量 DOUBAO_API_KEY
+  const response = await fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ topic, model: 'doubao-seed-1-6-250715' })
+  });
+
+  if(!response.ok){
+    const err = await response.json().catch(()=>({error:response.statusText}));
+    throw new Error(err.error || '请求失败');
+  }
+  return await response.json();
+}
+
+function showLoading(){
+  document.getElementById('docEmpty').style.display = 'block';
+  document.getElementById('docContent').style.display = 'none';
+  document.getElementById('mindmapEmpty').style.display = 'block';
+  document.getElementById('mindmapContent').style.display = 'none';
+  document.getElementById('quizEmpty').style.display = 'block';
+  document.getElementById('quizContent').style.display = 'none';
+  document.getElementById('resultTabs').style.display = 'none';
+
+  document.getElementById('docEmpty').innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>AI 正在为你生成「${document.getElementById('topicInput').value}」知识...</p>
+      <div class="hint">大约需要 10-20 秒，包含文档、思维导图和测验题</div>
+    </div>
+  `;
+}
+
+function showError(msg){
+  document.getElementById('docEmpty').style.display = 'block';
+  document.getElementById('docEmpty').innerHTML = `
+    <div class="error-box" style="text-align:left">
+      <strong>😔 生成失败</strong><br/>
+      ${msg}
+    </div>
+  `;
+}
+
+// ========== Tab Switching ==========
+function switchTab(tab, btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
+}
+
+// ========== Render All ==========
+function renderAll(){
+  renderDoc();
+  renderMindmap();
+  renderQuiz();
+  // 重置测验
+  quizState = { current: 0, answers: [], finished: false };
+  updateQuizUI();
+}
+
+// ========== Doc ==========
+function renderDoc(){
+  const d = currentData;
+  document.getElementById('docEmpty').style.display = 'none';
+  const doc = document.getElementById('docContent');
+  doc.style.display = 'block';
+
+  const ideasHtml = (d.coreIdeas||[]).map(i=>`<li>${i}</li>`).join('');
+  const processHtml = (d.keyProcess||[]).map((p,i)=>`
+    <div class="process-item">
+      <div class="step-num">${i+1}</div>
+      <h4>${p.step}</h4>
+      <p>${p.desc}</p>
+    </div>
+  `).join('');
+  const toolsHtml = (d.keyTools||[]).map(t=>`
+    <div class="tool-card">
+      <strong>${t.name}</strong>
+      <span>${t.desc}</span>
+    </div>
+  `).join('');
+
+  doc.innerHTML = `
+    <div class="doc-card">
+      <div class="doc-header">
+        <div class="doc-title">${d.title}</div>
+        <div class="doc-en">${d.englishName||''}</div>
+        <div class="doc-def">${d.definition}</div>
+      </div>
+
+      <div class="doc-section">
+        <h3><span class="icon">📖</span> 整体介绍</h3>
+        <p style="color:var(--text-2);font-size:14.5px;line-height:1.8">${d.overview}</p>
+      </div>
+
+      <div class="doc-section">
+        <h3><span class="icon">💡</span> 核心理念</h3>
+        <ul class="idea-list">${ideasHtml}</ul>
+      </div>
+
+      <div class="doc-section">
+        <h3><span class="icon">🔄</span> 关键流程</h3>
+        <div class="process-grid">${processHtml}</div>
+      </div>
+
+      <div class="doc-section">
+        <h3><span class="icon">🛠️</span> 核心工具与方法</h3>
+        <div class="tools-grid">${toolsHtml}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ========== Mindmap ==========
+function renderMindmap(){
+  const d = currentData;
+  document.getElementById('mindmapEmpty').style.display = 'none';
+  document.getElementById('mindmapContent').style.display = 'block';
+
+  document.getElementById('mindmapTitle').textContent = d.title + ' · 知识脉络';
+  document.getElementById('mindmapSubtitle').textContent = '一图掌握核心概念与结构';
+
+  const svg = document.getElementById('mindmapSvg');
+  const center = d.mindmap?.center || d.title;
+  const branches = d.mindmap?.branches || [];
+
+  const colors = ['#7c8cff','#2dd4bf','#ffb454','#ff6b8a','#a67bff','#4ecdc4'];
+  const cx = 500, cy = 250;
+
+  // 计算布局：左右两侧分配分支
+  const leftBranches = branches.filter((_,i)=>i%2===0);
+  const rightBranches = branches.filter((_,i)=>i%2===1);
+
+  let html = '';
+
+  // Gradient
+  html += `<defs>
+    <linearGradient id="centerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c8cff"/>
+      <stop offset="100%" stop-color="#a67bff"/>
+    </linearGradient>
+  </defs>`;
+
+  // Draw lines and nodes for left branches
+  leftBranches.forEach((b,bi)=>{
+    const totalL = leftBranches.length;
+    const bx = 120;
+    const by = 80 + (400 / Math.max(totalL,1)) * bi + (400 / Math.max(totalL,1)) / 2;
+    const color = colors[bi*2 % colors.length];
+
+    // Line from center to branch
+    html += `<path d="M${cx-90},${cy} C${(cx+bx)/2+50},${cy} ${(cx+bx)/2-50},${by} ${bx+80},${by}"
+      stroke="${color}" stroke-width="3" fill="none" opacity="0.6"/>`;
+
+    // Branch node
+    html += `<rect x="${bx}" y="${by-22}" width="160" height="44" rx="22" fill="${color}"/>`;
+    html += `<text x="${bx+80}" y="${by+6}" text-anchor="middle" fill="#fff" font-size="15" font-weight="600">${b.label}</text>`;
+
+    // Children
+    const children = b.children || [];
+    children.forEach((c,ci)=>{
+      const cx_child = bx - 30;
+      const cy_child = by + (ci - (children.length-1)/2) * 36;
+
+      html += `<line x1="${bx}" y1="${cy_child}" x2="${bx-20}" y2="${cy_child}"
+        stroke="${color}" stroke-width="2" opacity="0.4"/>`;
+      html += `<rect x="${cx_child-70}" y="${cy_child-13}" width="140" height="26" rx="13"
+        fill="#1e2044" stroke="${color}" stroke-width="1.5"/>`;
+      html += `<text x="${cx_child}" y="${cy_child+5}" text-anchor="middle" fill="#a9adcf" font-size="12">${c}</text>`;
+    });
+  });
+
+  // Draw lines and nodes for right branches
+  rightBranches.forEach((b,bi)=>{
+    const totalR = rightBranches.length;
+    const bx = 720;
+    const by = 80 + (400 / Math.max(totalR,1)) * bi + (400 / Math.max(totalR,1)) / 2;
+    const color = colors[(bi*2+1) % colors.length];
+
+    html += `<path d="M${cx+90},${cy} C${(cx+bx)/2-50},${cy} ${(cx+bx)/2+50},${by} ${bx},${by}"
+      stroke="${color}" stroke-width="3" fill="none" opacity="0.6"/>`;
+
+    html += `<rect x="${bx}" y="${by-22}" width="160" height="44" rx="22" fill="${color}"/>`;
+    html += `<text x="${bx+80}" y="${by+6}" text-anchor="middle" fill="#fff" font-size="15" font-weight="600">${b.label}</text>`;
+
+    const children = b.children || [];
+    children.forEach((c,ci)=>{
+      const cx_child = bx + 190;
+      const cy_child = by + (ci - (children.length-1)/2) * 36;
+
+      html += `<line x1="${bx+160}" y1="${cy_child}" x2="${bx+170}" y2="${cy_child}"
+        stroke="${color}" stroke-width="2" opacity="0.4"/>`;
+      html += `<rect x="${cx_child-70}" y="${cy_child-13}" width="140" height="26" rx="13"
+        fill="#1e2044" stroke="${color}" stroke-width="1.5"/>`;
+      html += `<text x="${cx_child}" y="${cy_child+5}" text-anchor="middle" fill="#a9adcf" font-size="12">${c}</text>`;
+    });
+  });
+
+  // Center node
+  html += `<rect x="${cx-110}" y="${cy-32}" width="220" height="64" rx="32" fill="url(#centerGrad)"/>`;
+  html += `<text x="${cx}" y="${cy+5}" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">${center}</text>`;
+
+  svg.innerHTML = html;
+}
+
+// ========== Quiz ==========
+function renderQuiz(){
+  document.getElementById('quizEmpty').style.display = 'none';
+  document.getElementById('quizContent').style.display = 'block';
+  updateQuizUI();
+}
+
+function updateQuizUI(){
+  const quiz = currentData?.quiz || [];
+  const container = document.getElementById('quizContent');
+
+  if(quizState.finished){
+    const score = quizState.answers.filter((a,i)=>a===quiz[i]?.answer).length;
+    const pct = Math.round(score/quiz.length*100);
+    let level='', msg='';
+    if(pct>=90){level='知识大师';msg='你对这个领域掌握得非常扎实！'}
+    else if(pct>=70){level='进阶选手';msg='基础不错，再巩固一下细节就更完美了。'}
+    else if(pct>=50){level='入门学徒';msg='对核心框架有了解，建议多复习文档和思维导图。'}
+    else{level='初学者';msg='继续加油，多看看知识文档吧！'}
+
+    container.innerHTML = `
+      <div class="quiz-result">
+        <div class="quiz-score-circle" style="--score:${pct}%">
+          <div class="quiz-score-inner">
+            <div>
+              <div class="quiz-score-num">${score}/${quiz.length}</div>
+              <div class="quiz-score-label">答对</div>
+            </div>
+          </div>
+        </div>
+        <h3>${level}</h3>
+        <p>${msg}</p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button class="quiz-btn primary" onclick="restartQuiz()">再测一次</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const q = quiz[quizState.current];
+  if(!q){container.innerHTML='<p>暂无题目</p>';return;}
+
+  const answered = quizState.answers[quizState.current] !== undefined;
+  const selected = quizState.answers[quizState.current];
+  const isCorrect = answered && selected === q.answer;
+
+  const optionsHtml = q.options.map((opt,i)=>{
+    let cls = 'quiz-option';
+    if(answered && i === q.answer) cls += ' correct';
+    if(answered && i === selected && selected !== q.answer) cls += ' wrong';
+    if(!answered && i === selected) cls += ' selected';
+    return `<div class="${cls}" onclick="selectAnswer(${i})">
+      <div class="quiz-option-letter">${String.fromCharCode(65+i)}</div>
+      <span>${opt}</span>
+    </div>`;
+  }).join('');
+
+  const explainHtml = answered ? `<div class="quiz-explanation ${isCorrect?'':'wrong'}">
+    <strong>${isCorrect?'✅ 回答正确':'❌ 回答错误'}</strong><br/>${q.explanation}
+  </div>`:'';
+
+  const progress = ((quizState.current + (answered?1:0)) / quiz.length) * 100;
+  const isLast = quizState.current === quiz.length - 1;
+
+  container.innerHTML = `
+    <div class="quiz-header">
+      <div class="quiz-progress">
+        <div class="quiz-progress-bar"><div class="quiz-progress-fill" style="width:${progress}%"></div></div>
+        <div class="quiz-progress-text">第 ${quizState.current+1} / ${quiz.length} 题</div>
+      </div>
+    </div>
+    <div class="quiz-q-num">题目 ${quizState.current+1}</div>
+    <div class="quiz-q-text">${q.question}</div>
+    <div class="quiz-options">${optionsHtml}</div>
+    ${explainHtml}
+    <div class="quiz-nav">
+      <button class="quiz-btn secondary" onclick="prevQuestion()" ${quizState.current===0?'disabled':''}>上一题</button>
+      ${isLast ?
+        `<button class="quiz-btn primary" onclick="finishQuiz()" ${!answered?'disabled':''}>查看成绩</button>` :
+        `<button class="quiz-btn primary" onclick="nextQuestion()" ${!answered?'disabled':''}>下一题</button>`
+      }
+    </div>
+  `;
+}
+
+function selectAnswer(i){
+  if(quizState.answers[quizState.current] !== undefined) return;
+  quizState.answers[quizState.current] = i;
+  updateQuizUI();
+}
+function nextQuestion(){quizState.current++;updateQuizUI();}
+function prevQuestion(){quizState.current--;updateQuizUI();}
+function finishQuiz(){quizState.finished=true;updateQuizUI();}
+function restartQuiz(){
+  quizState = { current: 0, answers: [], finished: false };
+  updateQuizUI();
+}
+</script>
+
+</body>
+</html>
