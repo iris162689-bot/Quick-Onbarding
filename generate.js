@@ -74,7 +74,7 @@ function callDoubaoAPI(apiKey, userMessage, model) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': 'Bearer ' + apiKey,
         'Content-Length': Buffer.byteLength(requestBody)
       }
     };
@@ -84,7 +84,7 @@ function callDoubaoAPI(apiKey, userMessage, model) {
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
         if (res.statusCode !== 200) {
-          reject(new Error(`API 请求失败: ${res.statusCode} - ${data}`));
+          reject(new Error('API 请求失败: ' + res.statusCode + ' - ' + data));
           return;
         }
         try {
@@ -109,11 +109,9 @@ function callDoubaoAPI(apiKey, userMessage, model) {
 }
 
 function parseJSONContent(content) {
-  // 尝试直接解析
   try {
     return JSON.parse(content);
   } catch (e) {
-    // 尝试从代码块提取
     if (content.includes('```json')) {
       const match = content.match(/```json\n([\s\S]*?)\n```/);
       if (match) {
@@ -126,7 +124,6 @@ function parseJSONContent(content) {
         try { return JSON.parse(match[1].trim()); } catch (_) {}
       }
     }
-    // 尝试提取第一个 { 到最后一个 }
     const firstBrace = content.indexOf('{');
     const lastBrace = content.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
@@ -136,7 +133,7 @@ function parseJSONContent(content) {
   }
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -157,20 +154,20 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: '请输入学习主题' });
     }
 
-    // 优先使用环境变量中的 API Key，其次使用请求中传入的
+    // 使用环境变量中的 API Key
     const apiKey = process.env.DOUBAO_API_KEY;
 
     if (!apiKey) {
-      return res.status(400).json({ error: '服务器未配置豆包 API Key，请在环境变量中设置 DOUBAO_API_KEY' });
+      return res.status(400).json({ error: '服务器未配置豆包 API Key，请在 Vercel 环境变量中设置 DOUBAO_API_KEY' });
     }
 
-    const userMessage = `请帮我生成关于「${topic.trim()}」的完整知识学习资料。`;
+    const userMessage = '请帮我生成关于「' + topic.trim() + '」的完整知识学习资料。';
     const rawContent = await callDoubaoAPI(apiKey, userMessage, model);
     const data = parseJSONContent(rawContent);
 
-    return res.status(200).json({ data, raw: rawContent });
+    return res.status(200).json({ data: data, raw: rawContent });
   } catch (error) {
     console.error('API 调用失败:', error.message);
     return res.status(500).json({ error: error.message });
   }
-}
+};
